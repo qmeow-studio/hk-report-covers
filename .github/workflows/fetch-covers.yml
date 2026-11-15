@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       year:
-        description: '年份（留空＝今年）'
+        description: '年份（留空＝今年；可填範圍 2019-2025 或 2024,2025）'
         required: false
         default: ''
 
@@ -38,4 +38,28 @@ jobs:
           python-version: '3.12'
       - run: pip install requests pymupdf
       - name: 抓取
-        run: python scraper/fetch_covers.py --year "${{ inputs.year }}" --out data --git --max-minutes 320
+        env:
+          YEARS: ${{ inputs.year }}
+        run: |
+          LIST=$(python - <<'PY'
+          import os, re
+          s = os.environ.get("YEARS", "").strip()
+          out = []
+          for part in re.split(r"[,\s]+", s):
+              m = re.fullmatch(r"(\d{4})-(\d{4})", part)
+              if m:
+                  a, b = sorted(map(int, m.groups()))
+                  out += range(b, a - 1, -1)
+              elif re.fullmatch(r"\d{4}", part):
+                  out.append(int(part))
+          print(" ".join(map(str, out)))
+          PY
+          )
+          if [ -z "$LIST" ]; then
+            python scraper/fetch_covers.py --out data --git --max-minutes 320
+          else
+            for y in $LIST; do
+              echo "===== $y ====="
+              python scraper/fetch_covers.py --year "$y" --out data --git --max-minutes 90 || echo "⚠️ $y 未完成"
+            done
+          fi

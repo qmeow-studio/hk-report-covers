@@ -28,7 +28,8 @@ import requests
 
 BASE = "https://www1.hkexnews.hk"
 SEARCH = BASE + "/search/titleSearchServlet.do"
-TYPES = {"AR": "40100", "IR": "40200"}  # 年報 / 中期報告
+# ESG 排第一：年報兼 ESG 嘅文件之後會被 AR 蓋返做年報，淨返獨立 ESG 報告
+TYPES = {"ESG": "40400", "AR": "40100", "IR": "40200"}  # ESG 報告 / 年報 / 中期報告
 ROWS = 1000
 COVER_WIDTH = 600
 MAX_PDF_BYTES = 300 * 1024 * 1024
@@ -235,6 +236,12 @@ def main():
             d2 = (date(year + (m == 12), m % 12 + 1, 1) - timedelta(days=1))
             d2 = min(d2, today)
             recs = collect(session, d1, d2, t2)
+            if rtype == "ESG" and recs:
+                ok = [r for r in recs if "環境" in (r.get("LONG_TEXT") or "")]
+                if not ok:
+                    print(f"⚠️ ESG {d1:%Y-%m}: 搜到 {len(recs)} 份但分類唔似 ESG，例子："
+                          f"{str(recs[0].get('LONG_TEXT'))[:80]}，已略過", flush=True)
+                recs = ok
             print(f"{rtype} {d1:%Y-%m}: {len(recs)} 份", flush=True)
             for rec in recs:
                 e = normalize(rec, rtype)
@@ -259,6 +266,8 @@ def main():
             and fails.get(e["id"], 0) < MAX_FAILS]
     print(f"要下載封面：{len(todo)} 份", flush=True)
     save_all(out, year, entries, fails)
+    if a.git:
+        git_sync(out, f"index {year}: {len(entries)} 份")
 
     done = errs = 0
     last_sync = time.time()

@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -153,7 +154,7 @@ fun MainScreen(vm: MainVM = viewModel()) {
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -176,7 +177,7 @@ fun MainScreen(vm: MainVM = viewModel()) {
                         }
                     }
                 }
-                listOf("ALL" to "全部", "AR" to "年報", "IR" to "中期").forEach { (k, label) ->
+                listOf("ALL" to "全部", "AR" to "年報", "IR" to "中期", "ESG" to "ESG").forEach { (k, label) ->
                     FilterChip(
                         selected = vm.type == k,
                         onClick = { vm.type = k },
@@ -249,6 +250,13 @@ fun MainScreen(vm: MainVM = viewModel()) {
     }
 }
 
+fun typeLabel(type: String): String = when (type) {
+    "AR" -> "年報"
+    "IR" -> "中期"
+    "ESG" -> "ESG"
+    else -> type
+}
+
 @Composable
 fun CoverCell(r: Report, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
@@ -262,7 +270,7 @@ fun CoverCell(r: Report, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Text(
-            "${r.code} · ${if (r.type == "AR") "年報" else "中期"}",
+            "${r.code} · ${typeLabel(r.type)}",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             maxLines = 1

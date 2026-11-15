@@ -1,0 +1,41 @@
+name: 抓取年報封面
+
+on:
+  schedule:
+    - cron: '17 19 * * *'   # 每日香港時間 03:17
+  workflow_dispatch:
+    inputs:
+      year:
+        description: '年份（留空＝今年）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-covers
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: 準備 data 分支
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          REMOTE="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$REMOTE" data >/dev/null; then
+            git clone --depth 1 --branch data "$REMOTE" data
+          else
+            mkdir data && cd data && git init -q -b data && git remote add origin "$REMOTE"
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests pymupdf
+      - name: 抓取
+        run: python scraper/fetch_covers.py --year "${{ inputs.year }}" --out data --git --max-minutes 320

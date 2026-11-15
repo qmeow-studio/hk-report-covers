@@ -16,6 +16,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +59,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -274,6 +280,8 @@ fun CoverCell(r: Report, onClick: () -> Unit) {
 fun DetailDialog(r: Report, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    var zoom by remember { mutableStateOf(false) }
+    if (zoom) ZoomDialog(r) { zoom = false }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
             Column(
@@ -284,8 +292,9 @@ fun DetailDialog(r: Report, onDismiss: () -> Unit) {
                     model = DataSource.url(r.cover),
                     contentDescription = r.title,
                     contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().clickable { zoom = true }
                 )
+                Text("撳圖片放大", style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(12.dp))
                 Text("${r.code} ${r.name}", style = MaterialTheme.typography.titleMedium)
                 Text(r.title, style = MaterialTheme.typography.bodyMedium)
@@ -312,6 +321,59 @@ fun DetailDialog(r: Report, onDismiss: () -> Unit) {
                     TextButton(onClick = onDismiss) { Text("關閉") }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ZoomDialog(r: Report, onDismiss: () -> Unit) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, gestureZoom, _ ->
+                        val newScale = (scale * gestureZoom).coerceIn(1f, 6f)
+                        val maxX = size.width * (newScale - 1f) / 2f
+                        val maxY = size.height * (newScale - 1f) / 2f
+                        scale = newScale
+                        offset = Offset(
+                            (offset.x + pan.x).coerceIn(-maxX, maxX),
+                            (offset.y + pan.y).coerceIn(-maxY, maxY)
+                        )
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            if (scale > 1f) {
+                                scale = 1f
+                                offset = Offset.Zero
+                            } else {
+                                scale = 3f
+                            }
+                        },
+                        onTap = { if (scale == 1f) onDismiss() }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = DataSource.url(r.cover),
+                contentDescription = r.title,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    }
+            )
         }
     }
 }

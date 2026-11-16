@@ -78,8 +78,13 @@ import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+const val ALL_YEARS = -1
 
 class MainVM : ViewModel() {
     var years by mutableStateOf(listOf<Pair<Int, Int>>())
@@ -102,9 +107,20 @@ class MainVM : ViewModel() {
             try {
                 val ys = withContext(Dispatchers.IO) { DataSource.years() }
                 years = ys
-                val y = if (ys.any { it.first == selectYear }) selectYear else (ys.firstOrNull()?.first ?: 0)
+                val y = when {
+                    selectYear == ALL_YEARS && ys.isNotEmpty() -> ALL_YEARS
+                    ys.any { it.first == selectYear } -> selectYear
+                    else -> ys.firstOrNull()?.first ?: 0
+                }
                 year = y
-                all = if (y == 0) emptyList() else withContext(Dispatchers.IO) { DataSource.reports(y) }
+                all = when (y) {
+                    0 -> emptyList()
+                    ALL_YEARS -> coroutineScope {
+                        ys.map { async(Dispatchers.IO) { DataSource.reports(it.first) } }
+                            .awaitAll().flatten().distinctBy { it.id }
+                    }
+                    else -> withContext(Dispatchers.IO) { DataSource.reports(y) }
+                }
             } catch (e: Exception) {
                 error = e.message ?: e.toString()
                 all = emptyList()
@@ -131,14 +147,18 @@ fun MainScreen(vm: MainVM = viewModel()) {
     var selected by remember { mutableStateOf<Report?>(null) }
     var yearMenu by remember { mutableStateOf(false) }
 
-    val shown = remember(vm.all, vm.type, vm.query, vm.sortByDate) {
+    val shown = remember(vm.all, vm.type, vm.query, vm.sortByDate, vm.year) {
         val q = vm.query.trim().lowercase()
         val list = vm.all.filter { r ->
             r.cover.isNotEmpty() &&
                 (vm.type == "ALL" || r.type == vm.type) &&
                 (q.isEmpty() || r.code.contains(q) || r.name.lowercase().contains(q) || r.title.lowercase().contains(q))
         }
-        if (vm.sortByDate) list.sortedByDescending { it.date } else list
+        when {
+            vm.sortByDate -> list.sortedByDescending { it.date }
+            vm.year == ALL_YEARS -> list.sortedWith(compareBy<Report> { it.code }.thenByDescending { it.date })
+            else -> list
+        }
     }
 
     Scaffold(
@@ -163,9 +183,24 @@ fun MainScreen(vm: MainVM = viewModel()) {
                         onClick = { yearMenu = true },
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
-                        Text(if (vm.year == 0) "年份" else "${vm.year} ▾")
+                        Text(
+                            when (vm.year) {
+                                0 -> "年份"
+                                ALL_YEARS -> "全部年份 ▾"
+                                else -> "${vm.year} ▾"
+                            }
+                        )
                     }
                     DropdownMenu(expanded = yearMenu, onDismissRequest = { yearMenu = false }) {
+                        if (vm.years.size > 1) {
+                            DropdownMenuItem(
+                                text = { Text("全部年份（${vm.years.sumOf { it.second }}）") },
+                                onClick = {
+                                    yearMenu = false
+                                    vm.load(ALL_YEARS)
+                                }
+                            )
+                        }
                         vm.years.forEach { (y, n) ->
                             DropdownMenuItem(
                                 text = { Text("$y 年（$n）") },
@@ -231,7 +266,7 @@ fun MainScreen(vm: MainVM = viewModel()) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(shown, key = { it.id }) { r ->
-                        CoverCell(r) { selected = r }
+                        CoverCell(r, showYear = vm.year == ALL_YEARS) { selected = r }
                     }
                 }
             }
@@ -258,7 +293,7 @@ fun typeLabel(type: String): String = when (type) {
 }
 
 @Composable
-fun CoverCell(r: Report, onClick: () -> Unit) {
+fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
         AsyncImage(
             model = DataSource.url(r.cover),
@@ -276,7 +311,7 @@ fun CoverCell(r: Report, onClick: () -> Unit) {
             maxLines = 1
         )
         Text(
-            r.name,
+            if (showYear) "${r.date.take(4)} · ${r.name}" else r.name,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

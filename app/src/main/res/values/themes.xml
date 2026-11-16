@@ -1,4 +1,0 @@
-<resources>
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar" />
-    <color name="ic_bg">#F8F5F6</color>
-</resources>

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.tx.reportcovers
 
 import android.content.ContentValues
@@ -51,10 +53,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -64,6 +68,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +88,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
@@ -144,57 +150,60 @@ class MainVM : ViewModel() {
     }
 }
 
+// iOS 風格配色
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1F3A5F),
+    primary = Color(0xFF007AFF),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD6E3FF),
-    onPrimaryContainer = Color(0xFF001B3D),
-    secondary = Color(0xFF545F71),
+    primaryContainer = Color(0xFFE5F1FF),
+    onPrimaryContainer = Color(0xFF007AFF),
+    secondary = Color(0xFF6C6C70),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD8E3F8),
-    onSecondaryContainer = Color(0xFF111C2B),
-    tertiary = Color(0xFF9A6A12),
+    secondaryContainer = Color(0xFFE4E4EA),
+    onSecondaryContainer = Color(0xFF007AFF),
+    tertiary = Color(0xFFFF9500),
     onTertiary = Color.White,
-    background = Color(0xFFF7F8FB),
-    onBackground = Color(0xFF191C20),
-    surface = Color(0xFFF7F8FB),
-    onSurface = Color(0xFF191C20),
-    surfaceVariant = Color(0xFFE0E2EC),
-    onSurfaceVariant = Color(0xFF44474E),
-    surfaceContainerLow = Color(0xFFF1F3F9),
-    surfaceContainer = Color(0xFFECEEF4),
-    surfaceContainerHigh = Color(0xFFE6E8EF),
-    surfaceContainerHighest = Color(0xFFE0E2E9),
-    outline = Color(0xFF74777F),
-    outlineVariant = Color(0xFFD3D6DF),
+    background = Color(0xFFF2F2F7),
+    onBackground = Color.Black,
+    surface = Color(0xFFF2F2F7),
+    onSurface = Color.Black,
+    surfaceVariant = Color(0xFFE3E3E8),
+    onSurfaceVariant = Color(0xFF6C6C70),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color.White,
+    surfaceContainer = Color.White,
+    surfaceContainerHigh = Color(0xFFE3E3E8),
+    surfaceContainerHighest = Color(0xFFE3E3E8),
+    outline = Color(0xFF8E8E93),
+    outlineVariant = Color(0xFFD1D1D6),
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFA9C7FF),
-    onPrimary = Color(0xFF05305F),
-    primaryContainer = Color(0xFF254777),
-    onPrimaryContainer = Color(0xFFD6E3FF),
-    secondary = Color(0xFFBCC7DB),
-    onSecondary = Color(0xFF263141),
-    secondaryContainer = Color(0xFF3C4758),
-    onSecondaryContainer = Color(0xFFD8E3F8),
-    tertiary = Color(0xFFF2BE6A),
-    onTertiary = Color(0xFF432C00),
-    background = Color(0xFF111318),
-    onBackground = Color(0xFFE2E2E9),
-    surface = Color(0xFF111318),
-    onSurface = Color(0xFFE2E2E9),
-    surfaceVariant = Color(0xFF44474E),
-    onSurfaceVariant = Color(0xFFC4C6D0),
-    surfaceContainerLow = Color(0xFF191C20),
-    surfaceContainer = Color(0xFF1D2024),
-    surfaceContainerHigh = Color(0xFF282A2F),
-    surfaceContainerHighest = Color(0xFF33353A),
-    outline = Color(0xFF8E9099),
-    outlineVariant = Color(0xFF3A3D44),
+    primary = Color(0xFF0A84FF),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF0A2A4D),
+    onPrimaryContainer = Color(0xFF0A84FF),
+    secondary = Color(0xFF98989F),
+    onSecondary = Color.Black,
+    secondaryContainer = Color(0xFF2C2C2E),
+    onSecondaryContainer = Color(0xFF0A84FF),
+    tertiary = Color(0xFFFF9F0A),
+    onTertiary = Color.White,
+    background = Color.Black,
+    onBackground = Color.White,
+    surface = Color.Black,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF2C2C2E),
+    onSurfaceVariant = Color(0xFF98989F),
+    surfaceContainerLowest = Color(0xFF1C1C1E),
+    surfaceContainerLow = Color(0xFF1C1C1E),
+    surfaceContainer = Color(0xFF2C2C2E),
+    surfaceContainerHigh = Color(0xFF1C1C1E),
+    surfaceContainerHighest = Color(0xFF2C2C2E),
+    outline = Color(0xFF636366),
+    outlineVariant = Color(0xFF38383A),
 )
 
-private val EsgGreen = Color(0xFF2E7D32)
+private val EsgGreen = Color(0xFF34C759)
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
@@ -244,49 +253,33 @@ fun MainScreen(vm: MainVM = viewModel()) {
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
-            // 標題列
+            // 大標題
             Row(
-                Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp),
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 6.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     "年報封面庫",
-                    style = MaterialTheme.typography.headlineSmall,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = { vm.load() }) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "更新")
+                    Icon(Icons.Filled.Refresh, contentDescription = "更新", tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "設定")
+                    Icon(Icons.Filled.Settings, contentDescription = "設定", tint = MaterialTheme.colorScheme.primary)
                 }
             }
 
-            // 搜尋
-            SearchPill(
+            SearchField(
                 value = vm.query,
                 onChange = { vm.query = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
-            // 年份 + 排序 + 數量
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                YearPill(vm)
-                TogglePill(label = "最新先", selected = vm.sortByDate) { vm.sortByDate = !vm.sortByDate }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    "${shown.size} 份",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // 類型（四格平均分，一定啱闊度）
             SegmentedControl(
                 options = listOf("ALL" to "全部", "AR" to "年報", "IR" to "中期", "ESG" to "ESG"),
                 selected = vm.type,
@@ -294,21 +287,36 @@ fun MainScreen(vm: MainVM = viewModel()) {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
+            // 年份 + 排序 + 數量
+            Row(
+                Modifier.fillMaxWidth().padding(start = 8.dp, end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                YearMenu(vm)
+                TextToggle(label = "最新先", selected = vm.sortByDate) { vm.sortByDate = !vm.sortByDate }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "${shown.size} 份",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             when {
                 vm.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(strokeWidth = 3.dp, color = MaterialTheme.colorScheme.outline)
                 }
                 vm.error != null -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("載入失敗", style = MaterialTheme.typography.titleMedium)
+                        Text("載入失敗", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(6.dp))
                         Text(
                             vm.error ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.height(14.dp))
-                        Button(onClick = { vm.load() }) { Text("再試") }
+                        TextButton(onClick = { vm.load() }) { Text("再試", fontSize = 17.sp) }
                     }
                 }
                 shown.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -317,17 +325,18 @@ fun MainScreen(vm: MainVM = viewModel()) {
                             Icons.Filled.Search,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(44.dp)
                         )
                         Spacer(Modifier.height(8.dp))
-                        Text("搵唔到封面", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("冇結果", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("試下其他代號或者年份", fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(108.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(shown, key = { it.id }) { r ->
@@ -338,7 +347,7 @@ fun MainScreen(vm: MainVM = viewModel()) {
         }
     }
 
-    selected?.let { r -> DetailDialog(r) { selected = null } }
+    selected?.let { r -> DetailSheet(r) { selected = null } }
     if (showSettings) {
         SettingsDialog(
             onDismiss = { showSettings = false },
@@ -351,21 +360,28 @@ fun MainScreen(vm: MainVM = viewModel()) {
 }
 
 @Composable
-fun SearchPill(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+fun SearchField(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
     TextField(
         value = value,
         onValueChange = onChange,
-        placeholder = { Text("搜尋股份代號 / 公司名") },
+        placeholder = { Text("搜尋", color = MaterialTheme.colorScheme.onSurfaceVariant) },
         singleLine = true,
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
         trailingIcon = {
             if (value.isNotEmpty()) {
                 IconButton(onClick = { onChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "清除")
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "清除",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         },
-        shape = CircleShape,
+        shape = RoundedCornerShape(12.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -378,15 +394,14 @@ fun SearchPill(value: String, onChange: (String) -> Unit, modifier: Modifier = M
 }
 
 @Composable
-fun YearPill(vm: MainVM) {
+fun YearMenu(vm: MainVM) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
             Modifier
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .clip(RoundedCornerShape(8.dp))
                 .clickable { open = true }
-                .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -395,17 +410,22 @@ fun YearPill(vm: MainVM) {
                     ALL_YEARS -> "全部年份"
                     else -> "${vm.year} 年"
                 },
-                style = MaterialTheme.typography.labelLarge,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.primary
             )
             Icon(
                 Icons.Filled.ArrowDropDown,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                tint = MaterialTheme.colorScheme.primary
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
             if (vm.years.size > 1) {
                 DropdownMenuItem(
                     text = { Text("全部年份（${vm.years.sumOf { it.second }}）") },
@@ -429,23 +449,20 @@ fun YearPill(vm: MainVM) {
 }
 
 @Composable
-fun TogglePill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    val fg = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+fun TextToggle(label: String, selected: Boolean, onClick: () -> Unit) {
+    val fg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         Modifier
-            .clip(CircleShape)
-            .background(bg)
-            .border(1.dp, if (selected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (selected) {
             Icon(Icons.Filled.Check, contentDescription = null, tint = fg, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(3.dp))
         }
-        Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+        Text(label, fontSize = 15.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, color = fg)
     }
 }
 
@@ -456,29 +473,33 @@ fun SegmentedControl(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val thumb = if (isSystemInDarkTheme()) Color(0xFF636366) else Color.White
+    val track = RoundedCornerShape(9.dp)
+    val knob = RoundedCornerShape(7.dp)
     Row(
         modifier
-            .clip(CircleShape)
+            .clip(track)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(4.dp)
+            .padding(2.dp)
     ) {
         options.forEach { (key, label) ->
             val on = key == selected
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(CircleShape)
-                    .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .then(if (on) Modifier.shadow(2.dp, knob) else Modifier)
+                    .clip(knob)
+                    .background(if (on) thumb else Color.Transparent)
                     .clickable { onSelect(key) }
-                    .padding(vertical = 9.dp),
+                    .padding(vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     label,
                     maxLines = 1,
-                    style = MaterialTheme.typography.labelLarge,
+                    fontSize = 14.sp,
                     fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -487,28 +508,28 @@ fun SegmentedControl(
 
 @Composable
 fun TypeBadge(type: String, modifier: Modifier = Modifier) {
-    val (bg, fg) = when (type) {
-        "AR" -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
-        "IR" -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiary
-        "ESG" -> EsgGreen to Color.White
-        else -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+    val bg = when (type) {
+        "AR" -> MaterialTheme.colorScheme.primary
+        "IR" -> MaterialTheme.colorScheme.tertiary
+        "ESG" -> EsgGreen
+        else -> MaterialTheme.colorScheme.secondary
     }
     Text(
         typeLabel(type),
-        style = MaterialTheme.typography.labelSmall,
+        fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
-        color = fg,
+        color = Color.White,
         modifier = modifier
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(6.dp))
             .background(bg)
-            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .padding(horizontal = 6.dp, vertical = 1.dp)
     )
 }
 
 @Composable
 fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Column(Modifier.clip(shape).clickable(onClick = onClick)) {
+    val shape = RoundedCornerShape(10.dp)
+    Column(Modifier.clickable(onClick = onClick)) {
         Box {
             AsyncImage(
                 model = DataSource.url(r.cover),
@@ -517,119 +538,124 @@ fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(0.707f)
+                    .shadow(5.dp, shape)
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
             )
-            TypeBadge(r.type, Modifier.align(Alignment.TopStart).padding(8.dp))
+            TypeBadge(r.type, Modifier.align(Alignment.TopStart).padding(7.dp))
         }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            if (showYear) "${r.code} · ${r.date.take(4)}" else r.code,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
+        Spacer(Modifier.height(7.dp))
         Text(
             r.name,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
+            modifier = Modifier.padding(horizontal = 2.dp)
+        )
+        Text(
+            if (showYear) "${r.code} · ${r.date.take(4)}" else r.code,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
     }
 }
 
 @Composable
-fun DetailDialog(r: Report, onDismiss: () -> Unit) {
+fun DetailSheet(r: Report, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var zoom by remember { mutableStateOf(false) }
-    if (zoom) ZoomDialog(r) { zoom = false }
-    val shape = RoundedCornerShape(18.dp)
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "關閉")
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "${r.code} ${r.name}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            "刊發日期 ${r.date}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    TypeBadge(r.type)
-                }
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    AsyncImage(
-                        model = DataSource.url(r.cover),
-                        contentDescription = r.title,
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(10.dp, shape)
-                            .clip(shape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .clickable { zoom = true }
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Text(r.title, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(4.dp))
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val shape = RoundedCornerShape(14.dp)
+    val buttonShape = RoundedCornerShape(13.dp)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        containerColor = MaterialTheme.colorScheme.background
+    ) {
+        if (zoom) ZoomDialog(r) { zoom = false }
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        "撳圖片可以放大",
-                        style = MaterialTheme.typography.labelSmall,
+                        r.name,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        "${r.code} · ${typeLabel(r.type)} · ${r.date}",
+                        fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val ok = saveCover(ctx, r)
-                                Toast.makeText(
-                                    ctx,
-                                    if (ok) "已儲存到 Pictures/年報封面" else "儲存失敗",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("儲存封面") }
-                    FilledTonalButton(
-                        onClick = {
-                            try {
-                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.pdf)))
-                            } catch (e: Exception) {
-                                Toast.makeText(ctx, "開唔到連結", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("開報告 PDF") }
+                TextButton(onClick = onDismiss) {
+                    Text("完成", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                 }
+            }
+            Column(
+                Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 28.dp, vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AsyncImage(
+                    model = DataSource.url(r.cover),
+                    contentDescription = r.title,
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(14.dp, shape)
+                        .clip(shape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .clickable { zoom = true }
+                )
+                Spacer(Modifier.height(14.dp))
+                Text(r.title, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(2.dp))
+                Text("撳圖片可以放大", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val ok = saveCover(ctx, r)
+                            Toast.makeText(
+                                ctx,
+                                if (ok) "已儲存到 Pictures/年報封面" else "儲存失敗",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    shape = buttonShape,
+                    contentPadding = PaddingValues(vertical = 14.dp),
+                    modifier = Modifier.weight(1f)
+                ) { Text("儲存封面", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                FilledTonalButton(
+                    onClick = {
+                        try {
+                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.pdf)))
+                        } catch (e: Exception) {
+                            Toast.makeText(ctx, "開唔到連結", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    shape = buttonShape,
+                    contentPadding = PaddingValues(vertical = 14.dp),
+                    modifier = Modifier.weight(1f)
+                ) { Text("開報告 PDF", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
     }

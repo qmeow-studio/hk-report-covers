@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.tx.reportcovers
 
 import android.content.ContentValues
@@ -14,11 +12,13 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,29 +30,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +72,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -130,22 +144,89 @@ class MainVM : ViewModel() {
     }
 }
 
+private val LightColors = lightColorScheme(
+    primary = Color(0xFF1F3A5F),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFD6E3FF),
+    onPrimaryContainer = Color(0xFF001B3D),
+    secondary = Color(0xFF545F71),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD8E3F8),
+    onSecondaryContainer = Color(0xFF111C2B),
+    tertiary = Color(0xFF9A6A12),
+    onTertiary = Color.White,
+    background = Color(0xFFF7F8FB),
+    onBackground = Color(0xFF191C20),
+    surface = Color(0xFFF7F8FB),
+    onSurface = Color(0xFF191C20),
+    surfaceVariant = Color(0xFFE0E2EC),
+    onSurfaceVariant = Color(0xFF44474E),
+    surfaceContainerLow = Color(0xFFF1F3F9),
+    surfaceContainer = Color(0xFFECEEF4),
+    surfaceContainerHigh = Color(0xFFE6E8EF),
+    surfaceContainerHighest = Color(0xFFE0E2E9),
+    outline = Color(0xFF74777F),
+    outlineVariant = Color(0xFFD3D6DF),
+)
+
+private val DarkColors = darkColorScheme(
+    primary = Color(0xFFA9C7FF),
+    onPrimary = Color(0xFF05305F),
+    primaryContainer = Color(0xFF254777),
+    onPrimaryContainer = Color(0xFFD6E3FF),
+    secondary = Color(0xFFBCC7DB),
+    onSecondary = Color(0xFF263141),
+    secondaryContainer = Color(0xFF3C4758),
+    onSecondaryContainer = Color(0xFFD8E3F8),
+    tertiary = Color(0xFFF2BE6A),
+    onTertiary = Color(0xFF432C00),
+    background = Color(0xFF111318),
+    onBackground = Color(0xFFE2E2E9),
+    surface = Color(0xFF111318),
+    onSurface = Color(0xFFE2E2E9),
+    surfaceVariant = Color(0xFF44474E),
+    onSurfaceVariant = Color(0xFFC4C6D0),
+    surfaceContainerLow = Color(0xFF191C20),
+    surfaceContainer = Color(0xFF1D2024),
+    surfaceContainerHigh = Color(0xFF282A2F),
+    surfaceContainerHighest = Color(0xFF33353A),
+    outline = Color(0xFF8E9099),
+    outlineVariant = Color(0xFF3A3D44),
+)
+
+private val EsgGreen = Color(0xFF2E7D32)
+
+@Composable
+fun AppTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
+        content = content
+    )
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            AppTheme {
                 MainScreen()
             }
         }
     }
 }
 
+fun typeLabel(type: String): String = when (type) {
+    "AR" -> "年報"
+    "IR" -> "中期"
+    "ESG" -> "ESG"
+    else -> type
+}
+
 @Composable
 fun MainScreen(vm: MainVM = viewModel()) {
     var showSettings by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Report?>(null) }
-    var yearMenu by remember { mutableStateOf(false) }
 
     val shown = remember(vm.all, vm.type, vm.query, vm.sortByDate, vm.year) {
         val q = vm.query.trim().lowercase()
@@ -161,87 +242,56 @@ fun MainScreen(vm: MainVM = viewModel()) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("港股年報封面庫") },
-                actions = {
-                    TextButton(onClick = { vm.load() }) { Text("更新") }
-                    TextButton(onClick = { showSettings = true }) { Text("設定") }
-                }
-            )
-        }
-    ) { pad ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
+            // 標題列
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box {
-                    OutlinedButton(
-                        onClick = { yearMenu = true },
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Text(
-                            when (vm.year) {
-                                0 -> "年份"
-                                ALL_YEARS -> "全部年份 ▾"
-                                else -> "${vm.year} ▾"
-                            }
-                        )
-                    }
-                    DropdownMenu(expanded = yearMenu, onDismissRequest = { yearMenu = false }) {
-                        if (vm.years.size > 1) {
-                            DropdownMenuItem(
-                                text = { Text("全部年份（${vm.years.sumOf { it.second }}）") },
-                                onClick = {
-                                    yearMenu = false
-                                    vm.load(ALL_YEARS)
-                                }
-                            )
-                        }
-                        vm.years.forEach { (y, n) ->
-                            DropdownMenuItem(
-                                text = { Text("$y 年（$n）") },
-                                onClick = {
-                                    yearMenu = false
-                                    vm.load(y)
-                                }
-                            )
-                        }
-                    }
-                }
-                listOf("ALL" to "全部", "AR" to "年報", "IR" to "中期", "ESG" to "ESG").forEach { (k, label) ->
-                    FilterChip(
-                        selected = vm.type == k,
-                        onClick = { vm.type = k },
-                        label = { Text(label) }
-                    )
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
-                    value = vm.query,
-                    onValueChange = { vm.query = it },
-                    placeholder = { Text("股份代號 / 公司名") },
-                    singleLine = true,
+                Text(
+                    "年報封面庫",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(Modifier.width(6.dp))
-                FilterChip(
-                    selected = vm.sortByDate,
-                    onClick = { vm.sortByDate = !vm.sortByDate },
-                    label = { Text("最新先") }
+                IconButton(onClick = { vm.load() }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "更新")
+                }
+                IconButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Filled.Settings, contentDescription = "設定")
+                }
+            }
+
+            // 搜尋
+            SearchPill(
+                value = vm.query,
+                onChange = { vm.query = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+            )
+
+            // 年份 + 排序 + 數量
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                YearPill(vm)
+                TogglePill(label = "最新先", selected = vm.sortByDate) { vm.sortByDate = !vm.sortByDate }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "${shown.size} 份",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                "共 ${shown.size} 份",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp)
+
+            // 類型（四格平均分，一定啱闊度）
+            SegmentedControl(
+                options = listOf("ALL" to "全部", "AR" to "年報", "IR" to "中期", "ESG" to "ESG"),
+                selected = vm.type,
+                onSelect = { vm.type = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
             when {
@@ -250,19 +300,34 @@ fun MainScreen(vm: MainVM = viewModel()) {
                 }
                 vm.error != null -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("載入失敗：${vm.error}")
-                        Spacer(Modifier.height(12.dp))
+                        Text("載入失敗", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            vm.error ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(14.dp))
                         Button(onClick = { vm.load() }) { Text("再試") }
                     }
                 }
                 shown.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("未有封面")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text("搵唔到封面", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(108.dp),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(shown, key = { it.id }) { r ->
@@ -285,36 +350,194 @@ fun MainScreen(vm: MainVM = viewModel()) {
     }
 }
 
-fun typeLabel(type: String): String = when (type) {
-    "AR" -> "年報"
-    "IR" -> "中期"
-    "ESG" -> "ESG"
-    else -> type
+@Composable
+fun SearchPill(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    TextField(
+        value = value,
+        onValueChange = onChange,
+        placeholder = { Text("搜尋股份代號 / 公司名") },
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = "清除")
+                }
+            }
+        },
+        shape = CircleShape,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+        ),
+        modifier = modifier
+    )
+}
+
+@Composable
+fun YearPill(vm: MainVM) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .clickable { open = true }
+                .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                when (vm.year) {
+                    0 -> "年份"
+                    ALL_YEARS -> "全部年份"
+                    else -> "${vm.year} 年"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Icon(
+                Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (vm.years.size > 1) {
+                DropdownMenuItem(
+                    text = { Text("全部年份（${vm.years.sumOf { it.second }}）") },
+                    onClick = {
+                        open = false
+                        vm.load(ALL_YEARS)
+                    }
+                )
+            }
+            vm.years.forEach { (y, n) ->
+                DropdownMenuItem(
+                    text = { Text("$y 年（$n）") },
+                    onClick = {
+                        open = false
+                        vm.load(y)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TogglePill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+    val fg = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        Modifier
+            .clip(CircleShape)
+            .background(bg)
+            .border(1.dp, if (selected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (selected) {
+            Icon(Icons.Filled.Check, contentDescription = null, tint = fg, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+    }
+}
+
+@Composable
+fun SegmentedControl(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(4.dp)
+    ) {
+        options.forEach { (key, label) ->
+            val on = key == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(CircleShape)
+                    .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { onSelect(key) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TypeBadge(type: String, modifier: Modifier = Modifier) {
+    val (bg, fg) = when (type) {
+        "AR" -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        "IR" -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiary
+        "ESG" -> EsgGreen to Color.White
+        else -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+    }
+    Text(
+        typeLabel(type),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = fg,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    )
 }
 
 @Composable
 fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
-    Column(Modifier.clickable(onClick = onClick)) {
-        AsyncImage(
-            model = DataSource.url(r.cover),
-            contentDescription = r.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.707f)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
+    val shape = RoundedCornerShape(14.dp)
+    Column(Modifier.clip(shape).clickable(onClick = onClick)) {
+        Box {
+            AsyncImage(
+                model = DataSource.url(r.cover),
+                contentDescription = r.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.707f)
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            )
+            TypeBadge(r.type, Modifier.align(Alignment.TopStart).padding(8.dp))
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
-            "${r.code} · ${typeLabel(r.type)}",
-            style = MaterialTheme.typography.labelMedium,
+            if (showYear) "${r.code} · ${r.date.take(4)}" else r.code,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            maxLines = 1
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 4.dp)
         )
         Text(
-            if (showYear) "${r.date.take(4)} · ${r.name}" else r.name,
-            style = MaterialTheme.typography.labelSmall,
+            r.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
         )
     }
 }
@@ -325,43 +548,87 @@ fun DetailDialog(r: Report, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var zoom by remember { mutableStateOf(false) }
     if (zoom) ZoomDialog(r) { zoom = false }
+    val shape = RoundedCornerShape(18.dp)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize()) {
-            Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                AsyncImage(
-                    model = DataSource.url(r.cover),
-                    contentDescription = r.title,
-                    contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth().clickable { zoom = true }
-                )
-                Text("撳圖片放大", style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.height(12.dp))
-                Text("${r.code} ${r.name}", style = MaterialTheme.typography.titleMedium)
-                Text(r.title, style = MaterialTheme.typography.bodyMedium)
-                Text("刊發日期：${r.date}", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        scope.launch {
-                            val ok = saveCover(ctx, r)
-                            Toast.makeText(
-                                ctx,
-                                if (ok) "已儲存到 Pictures/年報封面" else "儲存失敗",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }) { Text("儲存封面") }
-                    OutlinedButton(onClick = {
-                        try {
-                            ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.pdf)))
-                        } catch (e: Exception) {
-                            Toast.makeText(ctx, "開唔到連結", Toast.LENGTH_SHORT).show()
-                        }
-                    }) { Text("開報告 PDF") }
-                    TextButton(onClick = onDismiss) { Text("關閉") }
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "關閉")
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "${r.code} ${r.name}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "刊發日期 ${r.date}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TypeBadge(r.type)
+                }
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    AsyncImage(
+                        model = DataSource.url(r.cover),
+                        contentDescription = r.title,
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(10.dp, shape)
+                            .clip(shape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .clickable { zoom = true }
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Text(r.title, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "撳圖片可以放大",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val ok = saveCover(ctx, r)
+                                Toast.makeText(
+                                    ctx,
+                                    if (ok) "已儲存到 Pictures/年報封面" else "儲存失敗",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("儲存封面") }
+                    FilledTonalButton(
+                        onClick = {
+                            try {
+                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.pdf)))
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "開唔到連結", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("開報告 PDF") }
                 }
             }
         }

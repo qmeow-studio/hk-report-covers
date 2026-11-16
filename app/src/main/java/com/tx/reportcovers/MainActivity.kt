@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package com.tx.reportcovers
 
@@ -13,11 +13,15 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,6 +35,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,7 +75,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,6 +88,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -236,6 +244,15 @@ fun typeLabel(type: String): String = when (type) {
 fun MainScreen(vm: MainVM = viewModel()) {
     var showSettings by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Report?>(null) }
+    var selecting by remember { mutableStateOf(false) }
+    val picked = remember { mutableStateListOf<Report>() }
+    var showCollage by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
+
+    BackHandler(enabled = selecting) {
+        selecting = false
+        picked.clear()
+    }
 
     val shown = remember(vm.all, vm.type, vm.query, vm.sortByDate, vm.year) {
         val q = vm.query.trim().lowercase()
@@ -251,7 +268,31 @@ fun MainScreen(vm: MainVM = viewModel()) {
         }
     }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { pad ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            if (selecting) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shadowElevation = 8.dp) {
+                    Row(
+                        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (picked.size < 2) "揀 2 個或以上封面" else "已選 ${picked.size} 個",
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = { showCollage = true },
+                            enabled = picked.size >= 2,
+                            shape = RoundedCornerShape(13.dp)
+                        ) { Text("拼貼", fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                    }
+                }
+            }
+        }
+    ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             // 大標題
             Row(
@@ -259,18 +300,31 @@ fun MainScreen(vm: MainVM = viewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "年報封面庫",
-                    fontSize = 30.sp,
+                    if (selecting) "已選 ${picked.size} 個" else "年報封面庫",
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp,
                     color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = { vm.load() }) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "更新", tint = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "設定", tint = MaterialTheme.colorScheme.primary)
+                if (selecting) {
+                    TextButton(onClick = {
+                        selecting = false
+                        picked.clear()
+                    }) { Text("取消", fontSize = 17.sp, fontWeight = FontWeight.SemiBold) }
+                } else {
+                    TextButton(
+                        onClick = { selecting = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) { Text("選取", fontSize = 17.sp) }
+                    IconButton(onClick = { vm.load() }, modifier = Modifier.size(42.dp)) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "更新", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = { showSettings = true }, modifier = Modifier.size(42.dp)) {
+                        Icon(Icons.Filled.Settings, contentDescription = "設定", tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
 
@@ -340,7 +394,29 @@ fun MainScreen(vm: MainVM = viewModel()) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(shown, key = { it.id }) { r ->
-                        CoverCell(r, showYear = vm.year == ALL_YEARS) { selected = r }
+                        CoverCell(
+                            r,
+                            showYear = vm.year == ALL_YEARS,
+                            selecting = selecting,
+                            order = if (selecting) picked.indexOf(r) + 1 else 0,
+                            onClick = {
+                                if (!selecting) {
+                                    selected = r
+                                } else if (picked.contains(r)) {
+                                    picked.remove(r)
+                                } else if (picked.size < MAX_COLLAGE) {
+                                    picked.add(r)
+                                } else {
+                                    Toast.makeText(ctx, "最多揀 $MAX_COLLAGE 個", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onLongClick = {
+                                if (!selecting) {
+                                    selecting = true
+                                    picked.add(r)
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -348,6 +424,9 @@ fun MainScreen(vm: MainVM = viewModel()) {
     }
 
     selected?.let { r -> DetailSheet(r) { selected = null } }
+    if (showCollage) {
+        CollageDialog(picked.toList()) { showCollage = false }
+    }
     if (showSettings) {
         SettingsDialog(
             onDismiss = { showSettings = false },
@@ -527,9 +606,16 @@ fun TypeBadge(type: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
+fun CoverCell(
+    r: Report,
+    showYear: Boolean = false,
+    selecting: Boolean = false,
+    order: Int = 0,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
+) {
     val shape = RoundedCornerShape(10.dp)
-    Column(Modifier.clickable(onClick = onClick)) {
+    Column(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)) {
         Box {
             AsyncImage(
                 model = DataSource.url(r.cover),
@@ -543,6 +629,23 @@ fun CoverCell(r: Report, showYear: Boolean = false, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surfaceContainerLow)
             )
             TypeBadge(r.type, Modifier.align(Alignment.TopStart).padding(7.dp))
+            if (selecting) {
+                val on = order > 0
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(7.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(if (on) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.7f))
+                        .border(1.5.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (on) {
+                        Text("$order", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
         }
         Spacer(Modifier.height(7.dp))
         Text(
@@ -735,6 +838,12 @@ fun SettingsDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
                     label = { Text("GitHub 唯讀 token（私人 repo 先要）") },
                     singleLine = true
                 )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "年報封面庫 v${BuildConfig.VERSION_NAME}\n製作：Terence",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         confirmButton = {
@@ -748,16 +857,162 @@ fun SettingsDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
     )
 }
 
-suspend fun saveCover(ctx: Context, r: Report): Boolean = withContext(Dispatchers.IO) {
+const val MAX_COLLAGE = 40
+
+@Composable
+fun CollageDialog(items: List<Report>, onDismiss: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var cols by remember { mutableStateOf(if (items.size <= 4) "2" else if (items.size <= 9) "3" else "4") }
+    var style by remember { mutableStateOf("WHITE") }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var busy by remember { mutableStateOf(true) }
+
+    LaunchedEffect(cols, style) {
+        busy = true
+        bitmap = buildCollage(
+            ctx, items, cols.toInt(),
+            gap = if (style == "NONE") 0 else 24,
+            background = if (style == "BLACK") android.graphics.Color.BLACK else android.graphics.Color.WHITE
+        )
+        busy = false
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) { Text("取消", fontSize = 17.sp) }
+                    Text(
+                        "拼貼（${items.size} 個）",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    TextButton(
+                        enabled = !busy && bitmap != null,
+                        onClick = {
+                            val bmp = bitmap ?: return@TextButton
+                            scope.launch {
+                                val ok = saveBitmap(ctx, bmp, "collage_${System.currentTimeMillis()}.jpg")
+                                Toast.makeText(
+                                    ctx,
+                                    if (ok) "已儲存到 Pictures/年報封面" else "儲存失敗",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                if (ok) onDismiss()
+                            }
+                        }
+                    ) { Text("儲存", fontSize = 17.sp, fontWeight = FontWeight.SemiBold) }
+                }
+                Box(
+                    Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val bmp = bitmap
+                    if (bmp != null) {
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = "拼貼預覽",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    if (busy) {
+                        CircularProgressIndicator(strokeWidth = 3.dp, color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+                Text(
+                    "每行幾多個",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, top = 4.dp)
+                )
+                SegmentedControl(
+                    options = listOf("2" to "2", "3" to "3", "4" to "4", "5" to "5"),
+                    selected = cols,
+                    onSelect = { cols = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+                Text(
+                    "邊框",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, top = 4.dp)
+                )
+                SegmentedControl(
+                    options = listOf("WHITE" to "白邊", "BLACK" to "黑邊", "NONE" to "冇邊"),
+                    selected = style,
+                    onSelect = { style = it },
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 20.dp)
+                )
+            }
+        }
+    }
+}
+
+suspend fun loadCoverBitmap(ctx: Context, r: Report): Bitmap? {
+    val req = ImageRequest.Builder(ctx)
+        .data(DataSource.url(r.cover))
+        .allowHardware(false)
+        .build()
+    return (ctx.imageLoader.execute(req).drawable as? BitmapDrawable)?.bitmap
+}
+
+/** 將封面按次序排成格仔，每格 A4 比例，中間裁切。最後一行唔夠數會置中。 */
+suspend fun buildCollage(ctx: Context, items: List<Report>, cols: Int, gap: Int, background: Int): Bitmap? =
+    withContext(Dispatchers.IO) {
+        try {
+            val cellW = when {
+                cols <= 2 -> 600
+                cols == 3 -> 520
+                cols == 4 -> 420
+                else -> 340
+            }
+            val cellH = (cellW * 1.414f).toInt()
+            val rows = (items.size + cols - 1) / cols
+            val out = Bitmap.createBitmap(
+                cols * cellW + (cols + 1) * gap,
+                rows * cellH + (rows + 1) * gap,
+                Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(out)
+            canvas.drawColor(background)
+            val paint = android.graphics.Paint(
+                android.graphics.Paint.FILTER_BITMAP_FLAG or android.graphics.Paint.ANTI_ALIAS_FLAG
+            )
+            val dstRatio = cellW / cellH.toFloat()
+            items.forEachIndexed { i, r ->
+                val bmp = loadCoverBitmap(ctx, r) ?: return@forEachIndexed
+                val src = if (bmp.width / bmp.height.toFloat() > dstRatio) {
+                    val sw = (bmp.height * dstRatio).toInt()
+                    android.graphics.Rect((bmp.width - sw) / 2, 0, (bmp.width + sw) / 2, bmp.height)
+                } else {
+                    val sh = (bmp.width / dstRatio).toInt()
+                    android.graphics.Rect(0, (bmp.height - sh) / 2, bmp.width, (bmp.height + sh) / 2)
+                }
+                val row = i / cols
+                val col = i % cols
+                val inRow = if (row == rows - 1) items.size - row * cols else cols
+                val shift = (cols - inRow) * (cellW + gap) / 2
+                val left = gap + col * (cellW + gap) + shift
+                val top = gap + row * (cellH + gap)
+                canvas.drawBitmap(bmp, src, android.graphics.Rect(left, top, left + cellW, top + cellH), paint)
+            }
+            out
+        } catch (e: Throwable) {
+            null
+        }
+    }
+
+suspend fun saveBitmap(ctx: Context, bmp: Bitmap, fileName: String): Boolean = withContext(Dispatchers.IO) {
     try {
-        val req = ImageRequest.Builder(ctx)
-            .data(DataSource.url(r.cover))
-            .allowHardware(false)
-            .build()
-        val bmp = (ctx.imageLoader.execute(req).drawable as? BitmapDrawable)?.bitmap
-            ?: return@withContext false
         val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "${r.code}_${r.date}_${r.type}_${r.id}.jpg")
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
             put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/年報封面")
         }
@@ -768,4 +1023,13 @@ suspend fun saveCover(ctx: Context, r: Report): Boolean = withContext(Dispatcher
     } catch (e: Exception) {
         false
     }
+}
+
+suspend fun saveCover(ctx: Context, r: Report): Boolean {
+    val bmp = (try {
+        loadCoverBitmap(ctx, r)
+    } catch (e: Exception) {
+        null
+    }) ?: return false
+    return saveBitmap(ctx, bmp, "${r.code}_${r.date}_${r.type}_${r.id}.jpg")
 }

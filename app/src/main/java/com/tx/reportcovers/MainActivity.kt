@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -425,7 +426,7 @@ fun MainScreen(vm: MainVM = viewModel()) {
 
     selected?.let { r -> DetailSheet(r) { selected = null } }
     if (showCollage) {
-        CollageDialog(picked.toList()) { showCollage = false }
+        CollageScreen(picked.toList()) { showCollage = false }
     }
     if (showSettings) {
         SettingsDialog(
@@ -860,7 +861,7 @@ fun SettingsDialog(onDismiss: () -> Unit, onSaved: () -> Unit) {
 const val MAX_COLLAGE = 40
 
 @Composable
-fun CollageDialog(items: List<Report>, onDismiss: () -> Unit) {
+fun CollageScreen(items: List<Report>, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var cols by remember { mutableStateOf(if (items.size <= 4) "2" else if (items.size <= 9) "3" else "4") }
@@ -878,9 +879,11 @@ fun CollageDialog(items: List<Report>, onDismiss: () -> Unit) {
         busy = false
     }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    // 唔用 Dialog：直接鋪喺主畫面上面，系統導覽列嘅留位先會準
+    BackHandler(onBack = onDismiss)
+    run {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -967,6 +970,7 @@ suspend fun loadCoverBitmap(ctx: Context, r: Report): Bitmap? {
 suspend fun buildCollage(ctx: Context, items: List<Report>, cols: Int, gap: Int, background: Int): Bitmap? =
     withContext(Dispatchers.IO) {
         try {
+            val cols = minOf(cols, items.size)
             val cellW = when {
                 cols <= 2 -> 600
                 cols == 3 -> 520
